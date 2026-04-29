@@ -31,14 +31,18 @@
   .mini-bar{height:4px;background:#2a2a35;border-radius:2px;overflow:hidden;margin-bottom:8px}
   .mini-fill{height:100%;border-radius:2px;transition:width 0.5s}
   .fill-ok{background:#2ecc8a}.fill-warn{background:#f0a030}.fill-danger{background:#e05050}.fill-idle{background:#444}
-  .sub-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .sub-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
   .sub-block{background:#141419;border-radius:6px;padding:7px 9px}
   .sub-label{font-size:11px;margin-bottom:5px;font-weight:bold}
-  .sub-label.warn-label{color:#a06010}.sub-label.danger-label{color:#903030}
+  .sub-label.warn-label{color:#a06010}
+  .sub-label.danger-label{color:#903030}
+  .sub-label.ok-label{color:#1a5e2a}
   .tags{display:flex;flex-wrap:wrap;gap:3px}
-  .tag{font-size:11px;padding:2px 7px;border-radius:4px;font-weight:bold}
-  .tag-warn{background:#2a1a00;color:#f0a030}.tag-danger{background:#2a0000;color:#e05050}
-  .tag-none{font-size:11px;color:#444}
+  .tag{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:bold}
+  .tag-warn{background:#2a1a00;color:#f0a030}
+  .tag-danger{background:#2a0000;color:#e05050}
+  .tag-ok{background:#0a2a0a;color:#2ecc8a}
+  .tag-none{font-size:10px;color:#444}
   .legend{display:flex;gap:20px;margin-top:12px;padding-top:10px;border-top:1px solid #2a2a35;justify-content:center}
   .leg{display:flex;align-items:center;gap:6px;font-size:12px;color:#666}
   .leg-dot{width:8px;height:8px;border-radius:50%}
@@ -70,7 +74,7 @@ const GOOGLE_SHEET_URL="https://script.google.com/macros/s/AKfycbwdVRbjRaKda-JGD
 const SETORES=['Desenvolvimento','Impressão','Calandra','Corte','Costura','Montagem','Display','Solda','Acabamento','Personalizados','Expedição'];
 const CAP={Desenvolvimento:30,Impressão:40,Calandra:25,Corte:35,Costura:50,Montagem:45,Display:20,Solda:20,Acabamento:50,Personalizados:25,Expedição:60};
 let pedidos=[];let modoDemo=true;
-function gerarDemo(){const l=[];let n=1001;SETORES.forEach(s=>{const q=Math.floor(Math.random()*30)+5;for(let i=0;i<q;i++){const d=new Date();d.setDate(d.getDate()+Math.floor(Math.random()*18)-4);l.push({num:'#'+(n++),setor:s,prazo:d,urg:Math.random()<0.08});}});return l;}
+function gerarDemo(){const l=[];let n=1001;SETORES.forEach(s=>{const q=Math.floor(Math.random()*15)+3;for(let i=0;i<q;i++){const d=new Date();d.setDate(d.getDate()+Math.floor(Math.random()*18)-4);l.push({num:'#'+(n++),setor:s,prazo:d,urg:Math.random()<0.08});}});return l;}
 pedidos=gerarDemo();
 async function fetchSheets(){
   try{
@@ -91,7 +95,16 @@ function render(){
   document.getElementById('update-bar').textContent='Última atualização: '+now.toLocaleTimeString('pt-BR');
   const atr=pedidos.filter(p=>isLate(p)).length,urg=pedidos.filter(p=>p.urg&&!isLate(p)).length,crit=SETORES.filter(s=>stSetor(s)==='danger').length;
   document.getElementById('metrics').innerHTML='<div class="metric"><div class="metric-label">Total em produção</div><div class="metric-value mv-white">'+pedidos.length+'</div></div><div class="metric"><div class="metric-label">Urgentes</div><div class="metric-value mv-warn">'+urg+'</div></div><div class="metric"><div class="metric-label">Atrasados</div><div class="metric-value mv-danger">'+atr+'</div></div><div class="metric"><div class="metric-label">Setores críticos</div><div class="metric-value '+(crit>0?'mv-danger':'mv-ok')+'">'+crit+'</div></div>';
-  document.getElementById('sectors').innerHTML=SETORES.map(nome=>{const ps=pedidos.filter(p=>p.setor===nome),st=stSetor(nome),pct=Math.min(Math.round(ps.length/(CAP[nome]||30)*100),100),urg=ps.filter(p=>p.urg&&!isLate(p)),atr=ps.filter(p=>isLate(p)),norm=ps.length-urg.length-atr.length;return'<div class="sector st-'+st+'"><div class="sector-top"><div class="sector-name">'+nome+'</div><div><div class="sector-num">'+ps.length+'</div><div class="sector-num-label">'+norm+' no prazo</div></div></div><div class="mini-bar"><div class="mini-fill fill-'+st+'" style="width:'+pct+'%"></div></div><div class="sub-row"><div class="sub-block"><div class="sub-label warn-label">Urgentes ('+urg.length+')</div><div class="tags">'+(urg.length?urg.map(p=>'<span class="tag tag-warn">'+p.num+'</span>').join(''):'<span class="tag-none">—</span>')+'</div></div><div class="sub-block"><div class="sub-label danger-label">Atrasados ('+atr.length+')</div><div class="tags">'+(atr.length?atr.map(p=>'<span class="tag tag-danger">'+p.num+'</span>').join(''):'<span class="tag-none">—</span>')+'</div></div></div></div>';}).join('');
+  document.getElementById('sectors').innerHTML=SETORES.map(nome=>{
+    const ps=pedidos.filter(p=>p.setor===nome),st=stSetor(nome),pct=Math.min(Math.round(ps.length/(CAP[nome]||30)*100),100);
+    const urg=ps.filter(p=>p.urg&&!isLate(p));
+    const atr=ps.filter(p=>isLate(p));
+    const norm=ps.filter(p=>!p.urg&&!isLate(p));
+    const urgTags=urg.length?urg.map(p=>'<span class="tag tag-warn">'+p.num+'</span>').join(''):'<span class="tag-none">—</span>';
+    const atrTags=atr.length?atr.map(p=>'<span class="tag tag-danger">'+p.num+'</span>').join(''):'<span class="tag-none">—</span>';
+    const normTags=norm.length?norm.map(p=>'<span class="tag tag-ok">'+p.num+'</span>').join(''):'<span class="tag-none">—</span>';
+    return '<div class="sector st-'+st+'"><div class="sector-top"><div class="sector-name">'+nome+'</div><div><div class="sector-num">'+ps.length+'</div></div></div><div class="mini-bar"><div class="mini-fill fill-'+st+'" style="width:'+pct+'%"></div></div><div class="sub-row"><div class="sub-block"><div class="sub-label ok-label">No prazo ('+norm.length+')</div><div class="tags">'+normTags+'</div></div><div class="sub-block"><div class="sub-label warn-label">Urgentes ('+urg.length+')</div><div class="tags">'+urgTags+'</div></div><div class="sub-block"><div class="sub-label danger-label">Atrasados ('+atr.length+')</div><div class="tags">'+atrTags+'</div></div></div></div>';
+  }).join('');
 }
 async function atualizar(){await fetchSheets();render();}
 atualizar();setInterval(atualizar,30000);setInterval(()=>{const n=new Date();document.getElementById('clock-time').textContent=n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});},1000);
