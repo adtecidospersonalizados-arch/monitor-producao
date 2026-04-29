@@ -17,10 +17,7 @@
   .metric{background:#1a1a22;border-radius:8px;padding:12px 16px}
   .metric-label{font-size:12px;color:#666;margin-bottom:4px}
   .metric-value{font-size:30px;font-weight:bold}
-  .mv-white{color:#e8e6e0}
-  .mv-warn{color:#f0a030}
-  .mv-danger{color:#e05050}
-  .mv-ok{color:#2ecc8a}
+  .mv-white{color:#e8e6e0}.mv-warn{color:#f0a030}.mv-danger{color:#e05050}.mv-ok{color:#2ecc8a}
   .sectors{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
   .sector{background:#1a1a22;border-radius:8px;padding:12px 14px}
   .sector.st-ok{border-left:4px solid #2ecc8a}
@@ -33,35 +30,22 @@
   .sector-num-label{font-size:11px;color:#555;text-align:right;margin-top:2px}
   .mini-bar{height:4px;background:#2a2a35;border-radius:2px;overflow:hidden;margin-bottom:8px}
   .mini-fill{height:100%;border-radius:2px;transition:width 0.5s}
-  .fill-ok{background:#2ecc8a}
-  .fill-warn{background:#f0a030}
-  .fill-danger{background:#e05050}
-  .fill-idle{background:#444}
+  .fill-ok{background:#2ecc8a}.fill-warn{background:#f0a030}.fill-danger{background:#e05050}.fill-idle{background:#444}
   .sub-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .sub-block{background:#141419;border-radius:6px;padding:7px 9px}
   .sub-label{font-size:11px;margin-bottom:5px;font-weight:bold}
-  .sub-label.warn-label{color:#a06010}
-  .sub-label.danger-label{color:#903030}
+  .sub-label.warn-label{color:#a06010}.sub-label.danger-label{color:#903030}
   .tags{display:flex;flex-wrap:wrap;gap:3px}
   .tag{font-size:11px;padding:2px 7px;border-radius:4px;font-weight:bold}
-  .tag-warn{background:#2a1a00;color:#f0a030}
-  .tag-danger{background:#2a0000;color:#e05050}
+  .tag-warn{background:#2a1a00;color:#f0a030}.tag-danger{background:#2a0000;color:#e05050}
   .tag-none{font-size:11px;color:#444}
   .legend{display:flex;gap:20px;margin-top:12px;padding-top:10px;border-top:1px solid #2a2a35;justify-content:center}
   .leg{display:flex;align-items:center;gap:6px;font-size:12px;color:#666}
   .leg-dot{width:8px;height:8px;border-radius:50%}
   .update-bar{text-align:center;font-size:11px;color:#444;margin-top:8px}
-
-  /* ── COMO ALIMENTAR ── */
-  .instrucoes{background:#1a1a22;border-radius:8px;padding:14px 18px;margin-top:14px}
-  .instrucoes h3{font-size:14px;color:#888;margin-bottom:10px}
-  .inst-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-  .inst-item{font-size:12px;color:#666;line-height:1.6}
-  .inst-item strong{color:#aaa;display:block;margin-bottom:4px}
 </style>
 </head>
 <body>
-
 <div class="topbar">
   <div>
     <div class="title">Controle de produção</div>
@@ -72,134 +56,44 @@
     <div class="clock-date" id="clock-date"></div>
   </div>
 </div>
-
 <div class="metrics" id="metrics"></div>
 <div class="sectors" id="sectors"></div>
-
 <div class="legend">
   <div class="leg"><div class="leg-dot" style="background:#2ecc8a"></div>Normal</div>
   <div class="leg"><div class="leg-dot" style="background:#f0a030"></div>Atenção</div>
   <div class="leg"><div class="leg-dot" style="background:#e05050"></div>Crítico / atrasado</div>
   <div class="leg"><div class="leg-dot" style="background:#444"></div>Ocioso</div>
 </div>
-
 <div class="update-bar" id="update-bar">Atualizando...</div>
-
 <script>
-// ══════════════════════════════════════════════
-// CONFIGURAÇÃO — edite aqui conforme necessário
-// ══════════════════════════════════════════════
-const GOOGLE_SHEET_ID = "COLE_AQUI_O_ID_DA_SUA_PLANILHA";
-// Para usar com Google Sheets:
-// 1. Publique a planilha em Arquivo > Compartilhar > Publicar na web (formato CSV, aba Pedidos)
-// 2. Cole o ID da planilha acima
-// 3. O monitor vai buscar os dados automaticamente a cada 30 segundos
-
-const SETORES = ['Desenvolvimento','Impressão','Calandra','Corte','Costura','Montagem','Display','Solda','Acabamento','Personalizados','Expedição'];
-const CAP     = {Desenvolvimento:30,Impressão:40,Calandra:25,Corte:35,Costura:50,Montagem:45,Display:20,Solda:20,Acabamento:50,Personalizados:25,Expedição:60};
-
-// ══════════════════════════════════════════════
-// DADOS DE DEMONSTRAÇÃO (substituídos ao conectar o Sheets)
-// ══════════════════════════════════════════════
-function gerarDemoData(){
-  const list=[]; let n=1001;
-  SETORES.forEach(s=>{
-    const qt=Math.floor(Math.random()*50)+8;
-    for(let i=0;i<qt;i++){
-      const dias=Math.floor(Math.random()*18)-4;
-      const d=new Date(); d.setDate(d.getDate()+dias);
-      list.push({num:'#'+(n++), setor:s, prazo:d, urg:Math.random()<0.08});
-    }
-  });
-  return list;
-}
-
-let pedidos = gerarDemoData();
-let modoDemo = true;
-
-// ══════════════════════════════════════════════
-// BUSCA DO GOOGLE SHEETS (quando configurado)
-// ══════════════════════════════════════════════
+const APPS_URL="https://script.google.com/macros/s/AKfycbxB7Z1qnFB3g4-oG1oCm1LbpMLpy5lStAguKwW_T7tpQUdBOwy7ICa_nsWPMHUCS08B/exec";
+const SETORES=['Desenvolvimento','Impressão','Calandra','Corte','Costura','Montagem','Display','Solda','Acabamento','Personalizados','Expedição'];
+const CAP={Desenvolvimento:30,Impressão:40,Calandra:25,Corte:35,Costura:50,Montagem:45,Display:20,Solda:20,Acabamento:50,Personalizados:25,Expedição:60};
+let pedidos=[];let modoDemo=true;
+function gerarDemo(){const l=[];let n=1001;SETORES.forEach(s=>{const q=Math.floor(Math.random()*30)+5;for(let i=0;i<q;i++){const d=new Date();d.setDate(d.getDate()+Math.floor(Math.random()*18)-4);l.push({num:'#'+(n++),setor:s,prazo:d,urg:Math.random()<0.08});}});return l;}
+pedidos=gerarDemo();
 async function fetchSheets(){
-  if(GOOGLE_SHEET_ID==="COLE_AQUI_O_ID_DA_SUA_PLANILHA") return;
-  try {
-    const url=`https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Pedidos`;
-    const r=await fetch(url);
-    const txt=await r.text();
-    const linhas=txt.trim().split('\n').slice(1);
-    pedidos=linhas.map(l=>{
-      const cols=l.split(',').map(c=>c.replace(/^"|"$/g,''));
-      return {num:cols[0], setor:cols[3], prazo:new Date(cols[5].split('/').reverse().join('-')), urg:cols[7]==='Sim'};
-    }).filter(p=>p.setor&&SETORES.includes(p.setor));
-    modoDemo=false;
-  } catch(e){ console.log('Sheets offline, usando demo'); }
+  try{
+    const r=await fetch(APPS_URL);
+    const p=await r.json();
+    const f=p.filter(x=>x.setor&&SETORES.includes(x.setor)).map(x=>({...x,prazo:x.prazo?new Date(x.prazo):null}));
+    if(f.length>0){pedidos=f;modoDemo=false;}
+  }catch(e){modoDemo=true;}
 }
-
-// ══════════════════════════════════════════════
-// RENDER
-// ══════════════════════════════════════════════
-function isLate(p){ return p.prazo && p.prazo < new Date(); }
-
-function sectorStatus(nome){
-  const ps=pedidos.filter(p=>p.setor===nome);
-  if(ps.length===0) return 'idle';
-  if(ps.some(p=>isLate(p))) return 'danger';
-  if(ps.some(p=>p.urg)||ps.length>(CAP[nome]||30)*0.8) return 'warn';
-  return 'ok';
-}
-
+function isLate(p){return p.prazo&&p.prazo<new Date();}
+function stSetor(n){const ps=pedidos.filter(p=>p.setor===n);if(!ps.length)return'idle';if(ps.some(p=>isLate(p)))return'danger';if(ps.some(p=>p.urg)||ps.length>(CAP[n]||30)*0.8)return'warn';return'ok';}
 function render(){
   const now=new Date();
   document.getElementById('clock-time').textContent=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('clock-date').textContent=now.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
-  document.getElementById('subtitle').textContent=modoDemo?'Modo demonstração — conecte sua planilha Google':'Dados ao vivo — Google Sheets';
+  document.getElementById('subtitle').textContent=modoDemo?'Modo demonstração':'Dados ao vivo — Google Sheets';
   document.getElementById('update-bar').textContent='Última atualização: '+now.toLocaleTimeString('pt-BR');
-
-  const totalAtr=pedidos.filter(p=>isLate(p)).length;
-  const totalUrg=pedidos.filter(p=>p.urg&&!isLate(p)).length;
-  const criticos=SETORES.filter(s=>sectorStatus(s)==='danger').length;
-
-  document.getElementById('metrics').innerHTML=`
-    <div class="metric"><div class="metric-label">Total em produção</div><div class="metric-value mv-white">${pedidos.length}</div></div>
-    <div class="metric"><div class="metric-label">Urgentes</div><div class="metric-value mv-warn">${totalUrg}</div></div>
-    <div class="metric"><div class="metric-label">Atrasados</div><div class="metric-value mv-danger">${totalAtr}</div></div>
-    <div class="metric"><div class="metric-label">Setores críticos</div><div class="metric-value ${criticos>0?'mv-danger':'mv-ok'}">${criticos}</div></div>
-  `;
-
-  document.getElementById('sectors').innerHTML=SETORES.map(nome=>{
-    const ps=pedidos.filter(p=>p.setor===nome);
-    const st=sectorStatus(nome);
-    const pct=Math.min(Math.round(ps.length/(CAP[nome]||30)*100),100);
-    const urgentes=ps.filter(p=>p.urg&&!isLate(p));
-    const atrasados=ps.filter(p=>isLate(p));
-    const normais=ps.length-urgentes.length-atrasados.length;
-    const urgTags=urgentes.length===0?'<span class="tag-none">—</span>':urgentes.map(p=>`<span class="tag tag-warn">${p.num}</span>`).join('');
-    const atrTags=atrasados.length===0?'<span class="tag-none">—</span>':atrasados.map(p=>`<span class="tag tag-danger">${p.num}</span>`).join('');
-    return `<div class="sector st-${st}">
-      <div class="sector-top">
-        <div class="sector-name">${nome}</div>
-        <div><div class="sector-num">${ps.length}</div><div class="sector-num-label">${normais} no prazo</div></div>
-      </div>
-      <div class="mini-bar"><div class="mini-fill fill-${st}" style="width:${pct}%"></div></div>
-      <div class="sub-row">
-        <div class="sub-block"><div class="sub-label warn-label">Urgentes (${urgentes.length})</div><div class="tags">${urgTags}</div></div>
-        <div class="sub-block"><div class="sub-label danger-label">Atrasados (${atrasados.length})</div><div class="tags">${atrTags}</div></div>
-      </div>
-    </div>`;
-  }).join('');
+  const atr=pedidos.filter(p=>isLate(p)).length,urg=pedidos.filter(p=>p.urg&&!isLate(p)).length,crit=SETORES.filter(s=>stSetor(s)==='danger').length;
+  document.getElementById('metrics').innerHTML='<div class="metric"><div class="metric-label">Total em produção</div><div class="metric-value mv-white">'+pedidos.length+'</div></div><div class="metric"><div class="metric-label">Urgentes</div><div class="metric-value mv-warn">'+urg+'</div></div><div class="metric"><div class="metric-label">Atrasados</div><div class="metric-value mv-danger">'+atr+'</div></div><div class="metric"><div class="metric-label">Setores críticos</div><div class="metric-value '+(crit>0?'mv-danger':'mv-ok')+'">'+crit+'</div></div>';
+  document.getElementById('sectors').innerHTML=SETORES.map(nome=>{const ps=pedidos.filter(p=>p.setor===nome),st=stSetor(nome),pct=Math.min(Math.round(ps.length/(CAP[nome]||30)*100),100),urg=ps.filter(p=>p.urg&&!isLate(p)),atr=ps.filter(p=>isLate(p)),norm=ps.length-urg.length-atr.length;return'<div class="sector st-'+st+'"><div class="sector-top"><div class="sector-name">'+nome+'</div><div><div class="sector-num">'+ps.length+'</div><div class="sector-num-label">'+norm+' no prazo</div></div></div><div class="mini-bar"><div class="mini-fill fill-'+st+'" style="width:'+pct+'%"></div></div><div class="sub-row"><div class="sub-block"><div class="sub-label warn-label">Urgentes ('+urg.length+')</div><div class="tags">'+(urg.length?urg.map(p=>'<span class="tag tag-warn">'+p.num+'</span>').join(''):'<span class="tag-none">—</span>')+'</div></div><div class="sub-block"><div class="sub-label danger-label">Atrasados ('+atr.length+')</div><div class="tags">'+(atr.length?atr.map(p=>'<span class="tag tag-danger">'+p.num+'</span>').join(''):'<span class="tag-none">—</span>')+'</div></div></div></div>';}).join('');
 }
-
-async function atualizar(){
-  await fetchSheets();
-  render();
-}
-
-atualizar();
-setInterval(atualizar, 30000);
-setInterval(()=>{
-  const n=new Date();
-  document.getElementById('clock-time').textContent=n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-},1000);
+async function atualizar(){await fetchSheets();render();}
+atualizar();setInterval(atualizar,30000);setInterval(()=>{const n=new Date();document.getElementById('clock-time').textContent=n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});},1000);
 </script>
 </body>
 </html>
