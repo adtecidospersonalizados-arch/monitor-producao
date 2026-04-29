@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>QR Codes por Setor — Impressão</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;background:#fff;color:#111;padding:20px}
+  h1{font-size:18px;text-align:center;margin-bottom:6px;color:#1a1a2e}
+  .instrucao{font-size:12px;text-align:center;color:#666;margin-bottom:24px}
+  .config-bar{background:#f0f0f0;border-radius:8px;padding:14px 18px;margin-bottom:24px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+  .config-bar label{font-size:12px;color:#555;display:flex;flex-direction:column;gap:4px}
+  .config-bar input{padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;width:360px}
+  .config-bar button{padding:7px 18px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .card{border:2px solid #1a1a2e;border-radius:12px;padding:20px;text-align:center;page-break-inside:avoid}
+  .card-empresa{font-size:11px;color:#888;margin-bottom:4px}
+  .card-title{font-size:20px;font-weight:bold;color:#1a1a2e;margin-bottom:12px}
+  .qr-wrap{display:flex;justify-content:center;margin-bottom:12px}
+  .card-instrucao{font-size:11px;color:#555;line-height:1.5;border-top:1px solid #eee;padding-top:10px;margin-top:4px}
+  .card-instrucao strong{color:#1a1a2e}
+  .card-instrucao ol{text-align:left;padding-left:18px;margin-top:4px}
+  .card-url{font-size:9px;color:#aaa;margin-top:6px;word-break:break-all}
+  @media print{
+    .config-bar{display:none}
+    body{padding:8px}
+    .grid{gap:12px}
+    .card{border:1.5px solid #1a1a2e;padding:14px}
+  }
+</style>
+</head>
+<body>
+
+<h1>QR Codes de Setor — Controle de Produção</h1>
+<p class="instrucao">Cole o URL do seu formulário Google abaixo, clique em "Gerar QR Codes" e depois imprima esta página (Ctrl+P)</p>
+
+<div class="config-bar">
+  <label>
+    URL base do formulário Google Forms
+    <input type="text" id="url-base" placeholder="https://docs.google.com/forms/d/SEU_FORM_ID/viewform?usp=pp_url&entry.XXXXX=" value="https://docs.google.com/forms/d/SEU_FORM_ID/viewform?entry.SETOR=">
+  </label>
+  <label>
+    Nome da empresa
+    <input type="text" id="nome-empresa" placeholder="Sua Empresa" value="Sua Empresa — Produção" style="width:200px">
+  </label>
+  <button onclick="gerarQRs()">Gerar QR Codes</button>
+  <button onclick="window.print()" style="background:#2ecc71">Imprimir</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const SETORES=['Desenvolvimento','Impressão','Calandra','Corte','Costura','Montagem','Display','Solda','Acabamento','Personalizados','Expedição'];
+
+function gerarQRs(){
+  const urlBase = document.getElementById('url-base').value.trim();
+  const empresa = document.getElementById('nome-empresa').value.trim();
+  const grid = document.getElementById('grid');
+  grid.innerHTML='';
+
+  SETORES.forEach(setor=>{
+    const url = urlBase + encodeURIComponent(setor);
+    const card = document.createElement('div');
+    card.className='card';
+    card.innerHTML=`
+      <div class="card-empresa">${empresa}</div>
+      <div class="card-title">Setor: ${setor}</div>
+      <div class="qr-wrap" id="qr-${setor.replace(/[^a-z]/gi,'_')}"></div>
+      <div class="card-instrucao">
+        <strong>Como usar:</strong>
+        <ol>
+          <li>Escaneie o QR Code com o celular</li>
+          <li>Preencha o nº do pedido</li>
+          <li>Confirme a movimentação</li>
+        </ol>
+      </div>
+      <div class="card-url">${url}</div>
+    `;
+    grid.appendChild(card);
+
+    new QRCode(document.getElementById('qr-'+setor.replace(/[^a-z]/gi,'_')), {
+      text: url,
+      width: 160,
+      height: 160,
+      colorDark: "#1a1a2e",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  });
+}
+
+gerarQRs();
+</script>
+</body>
+</html>
