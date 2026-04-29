@@ -66,7 +66,7 @@
 </div>
 <div class="update-bar" id="update-bar">Atualizando...</div>
 <script>
-const APPS_URL="https://script.google.com/macros/s/AKfycbxB7Z1qnFB3g4-oG1oCm1LbpMLpy5lStAguKwW_T7tpQUdBOwy7ICa_nsWPMHUCS08B/exec";
+const GOOGLE_SHEET_URL="https://script.google.com/macros/s/AKfycbwdVRbjRaKda-JGDqyHgAH6VpC3QMuuzqWOpypo5cRMq3RbTGcj9e7fFbY9CpsHOTUH/exec";
 const SETORES=['Desenvolvimento','Impressão','Calandra','Corte','Costura','Montagem','Display','Solda','Acabamento','Personalizados','Expedição'];
 const CAP={Desenvolvimento:30,Impressão:40,Calandra:25,Corte:35,Costura:50,Montagem:45,Display:20,Solda:20,Acabamento:50,Personalizados:25,Expedição:60};
 let pedidos=[];let modoDemo=true;
@@ -74,10 +74,11 @@ function gerarDemo(){const l=[];let n=1001;SETORES.forEach(s=>{const q=Math.floo
 pedidos=gerarDemo();
 async function fetchSheets(){
   try{
-    const r=await fetch(APPS_URL);
+    const r=await fetch(GOOGLE_SHEET_URL);
     const p=await r.json();
+    if(p.length===0){pedidos=[];modoDemo=false;return;}
     const f=p.filter(x=>x.setor&&SETORES.includes(x.setor)).map(x=>({...x,prazo:x.prazo?new Date(x.prazo):null}));
-    if(f.length>0){pedidos=f;modoDemo=false;}
+    pedidos=f;modoDemo=false;
   }catch(e){modoDemo=true;}
 }
 function isLate(p){return p.prazo&&p.prazo<new Date();}
