@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Leitura de Pedido</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f0f0f0;min-height:100vh;padding:16px}
+.header{background:#1a1a2e;color:#fff;padding:14px 18px;border-radius:10px;margin-bottom:16px;text-align:center}
+.header h1{font-size:16px;font-weight:bold}
+.setor-nome{font-size:22px;font-weight:bold;margin-top:4px;color:#2ecc8a}
+.card{background:#fff;border-radius:10px;padding:20px;margin-bottom:14px;border:1px solid #e0e0e0}
+.card h2{font-size:14px;font-weight:bold;color:#1a1a2e;margin-bottom:14px}
+.form-group{margin-bottom:14px}
+.form-group label{font-size:12px;color:#555;display:block;margin-bottom:6px;font-weight:bold}
+.form-group input{width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:18px;font-family:Arial;text-align:center;letter-spacing:2px}
+.form-group input:focus{border-color:#1a1a2e;outline:none}
+.btn-registrar{width:100%;padding:16px;background:#1a1a2e;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer}
+.btn-registrar:active{background:#2a2a4e}
+.btn-registrar:disabled{background:#aaa}
+.resultado{display:none;border-radius:10px;padding:20px;text-align:center;margin-bottom:14px}
+.resultado.ok{background:#d6efd8;border:2px solid #2ecc8a}
+.resultado.erro{background:#fddede;border:2px solid #e05050}
+.resultado h3{font-size:18px;font-weight:bold;margin-bottom:8px}
+.resultado.ok h3{color:#1a5e2a}
+.resultado.erro h3{color:#8b0000}
+.resultado p{font-size:13px;color:#333}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.info-item{background:#fff;border-radius:6px;padding:8px;text-align:center}
+.info-label{font-size:10px;color:#666}
+.info-value{font-size:14px;font-weight:bold;color:#1a1a2e;margin-top:2px}
+.badge{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:bold;display:inline-block;margin-top:4px}
+.badge-normal{background:#e6f1fb;color:#0c447c}
+.badge-urgente{background:#faeeda;color:#633806}
+.badge-prioridade{background:#fcebeb;color:#a32d2d}
+.btn-novo{width:100%;padding:14px;background:#fff;color:#1a1a2e;border:2px solid #1a1a2e;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;margin-top:8px}
+.historico{background:#f9f9f9;border-radius:8px;padding:12px;margin-top:12px;text-align:left}
+.historico h4{font-size:12px;color:#666;margin-bottom:6px}
+.historico p{font-size:11px;color:#888;line-height:1.6;white-space:pre-line}
+.setor-badge{display:inline-block;background:#e6f1fb;color:#0c447c;font-size:11px;padding:3px 10px;border-radius:10px;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Registro de entrada</h1>
+  <div class="setor-nome" id="setor-nome">Carregando...</div>
+  <div style="font-size:11px;color:#888;margin-top:4px" id="setor-info"></div>
+</div>
+
+<div class="resultado" id="resultado"></div>
+
+<div class="card" id="form-card">
+  <h2>Digite ou escaneie o número do pedido</h2>
+  <div class="form-group">
+    <label>Número do pedido</label>
+    <input type="text" id="num-pedido" placeholder="Ex: 5001" autofocus
+      onkeydown="if(event.key==='Enter') registrar()">
+  </div>
+  <button class="btn-registrar" id="btn-reg" onclick="registrar()">Registrar entrada</button>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbz6o24u6VBIIJ04GPc33Fw2jxVl61CAMlhYpfcsry9-7A1qBTlW3yEZ9cU8eRoJjdPd/exec";
+const SETORES = ['Desenvolvimento','Impressão','Calandra','Corte','Costura','CNC Router','Montagem','Display','Solda','Acabamento','Personalizados','Terceirizados','Expedição'];
+
+const params = new URLSearchParams(window.location.search);
+const setor  = params.get('setor') || '';
+const idx    = SETORES.indexOf(setor);
+
+if(!setor || idx === -1){
+  document.getElementById('setor-nome').textContent = 'Setor inválido';
+  document.getElementById('setor-info').textContent = 'Link incorreto';
+} else {
+  document.getElementById('setor-nome').textContent = setor;
+  document.getElementById('setor-info').textContent = (idx+1) + 'º setor de ' + SETORES.length;
+}
+
+function badgeClass(s){ return s==='Urgente'?'badge-urgente':s==='Prioridade'?'badge-prioridade':'badge-normal'; }
+function formatDate(d){ if(!d) return '—'; try{ return new Date(d+'T12:00:00').toLocaleDateString('pt-BR'); }catch(e){ return d; } }
+
+async function registrar(){
+  const num = document.getElementById('num-pedido').value.trim();
+  if(!num){ alert('Digite o número do pedido!'); return; }
+  if(!setor || idx === -1){ alert('Setor inválido!'); return; }
+
+  const btn = document.getElementById('btn-reg');
+  btn.disabled = true;
+  btn.textContent = 'Registrando...';
+
+  try{
+    const r = await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({ acao: 'moverSetor', num, setor })
+    });
+    const data = await r.json();
+
+    const res = document.getElementById('resultado');
+    res.style.display = 'block';
+
+    if(data.erro){
+      res.className = 'resultado erro';
+      res.innerHTML = '<h3>Pedido não encontrado</h3><p>O pedido <strong>#'+num+'</strong> não existe no sistema.</p>';
+    } else {
+      res.className = 'resultado ok';
+      res.innerHTML =
+        '<h3>Entrada registrada!</h3>' +
+        '<p>Pedido movido para este setor com sucesso</p>' +
+        '<div class="info-grid">' +
+          '<div class="info-item"><div class="info-label">Pedido</div><div class="info-value">#'+data.num+'</div></div>' +
+          '<div class="info-item"><div class="info-label">Setor atual</div><div class="info-value">'+data.setor+'</div></div>' +
+          '<div class="info-item"><div class="info-label">Prazo</div><div class="info-value">'+formatDate(data.prazo)+'</div></div>' +
+          '<div class="info-item"><div class="info-label">Status</div><div class="info-value"><span class="badge '+badgeClass(data.status)+'">'+data.status+'</span></div></div>' +
+        '</div>' +
+        (data.historico ? '<div class="historico"><h4>Histórico</h4><p>'+data.historico+'</p></div>' : '') +
+        '<button class="btn-novo" onclick="novoPedido()">Registrar outro pedido</button>';
+      document.getElementById('form-card').style.display = 'none';
+    }
+  } catch(e){
+    const res = document.getElementById('resultado');
+    res.style.display = 'block';
+    res.className = 'resultado erro';
+    res.innerHTML = '<h3>Erro de conexão</h3><p>Verifique sua internet e tente novamente.</p><button class="btn-novo" onclick="novoPedido()">Tentar novamente</button>';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Registrar entrada';
+}
+
+function novoPedido(){
+  document.getElementById('resultado').style.display = 'none';
+  document.getElementById('form-card').style.display = 'block';
+  document.getElementById('num-pedido').value = '';
+  document.getElementById('num-pedido').focus();
+}
+</script>
+</body>
+</html>
