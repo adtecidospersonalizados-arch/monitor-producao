@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>QR Codes dos Encarregados</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px}
+h1{font-size:18px;text-align:center;color:#1a1a2e;margin-bottom:4px}
+.sub{font-size:12px;text-align:center;color:#888;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{background:#fff;border:2px solid #1a1a2e;border-radius:12px;padding:18px;text-align:center;page-break-inside:avoid}
+.card-num{font-size:11px;color:#aaa;margin-bottom:4px}
+.card-setor{font-size:20px;font-weight:bold;color:#1a1a2e;margin-bottom:14px}
+.qr-wrap{display:flex;justify-content:center;margin-bottom:14px}
+.instrucao{font-size:11px;color:#555;line-height:1.6;border-top:1px solid #eee;padding-top:10px}
+.instrucao strong{color:#1a1a2e}
+.instrucao ol{text-align:left;padding-left:16px;margin-top:4px}
+.card-url{font-size:8px;color:#ccc;margin-top:6px;word-break:break-all}
+.btn-print{display:block;margin:0 auto 20px;padding:10px 28px;background:#1a1a2e;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer}
+@media print{
+  .btn-print{display:none}
+  body{padding:8px;background:#fff}
+  .grid{gap:10px}
+  .card{border:1.5px solid #1a1a2e;padding:12px}
+}
+</style>
+</head>
+<body>
+<h1>QR Codes dos Encarregados — Controle de Produção</h1>
+<p class="sub">Entregue um cartão para cada encarregado. Ao receber um pedido, escaneie o QR Code do cartão e aponte para o QR Code da peça.</p>
+<button class="btn-print" onclick="window.print()">Imprimir todos</button>
+<div class="grid" id="grid"></div>
+<script>
+const BASE="https://adtecidospersonalizados-arch.github.io/monitor-producao/leitor.html?setor=";
+const SETORES=['Desenvolvimento','Impressão','Calandra','Corte','Costura','CNC Router','Montagem','Display','Solda','Acabamento','Personalizados','Terceirizados','Expedição'];
+const grid=document.getElementById('grid');
+SETORES.forEach((setor,i)=>{
+  const url=BASE+encodeURIComponent(setor);
+  const card=document.createElement('div');
+  card.className='card';
+  card.innerHTML='<div class="card-num">'+(i+1)+'º setor</div><div class="card-setor">'+setor+'</div><div class="qr-wrap" id="qr-'+i+'"></div><div class="instrucao"><strong>Como usar:</strong><ol><li>Escaneie este QR Code com o celular</li><li>Clique em "Abrir câmera"</li><li>Aponte para o QR Code da peça</li><li>Pedido registrado automaticamente!</li></ol></div><div class="card-url">'+url+'</div>';
+  grid.appendChild(card);
+  new QRCode(document.getElementById('qr-'+i),{text:url,width:150,height:150,colorDark:"#1a1a2e",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+});
+</script>
+</body>
+</html>
