@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leitura de Pedido</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:14px;padding:28px 24px;max-width:400px;width:100%;border:1px solid #e0e0e0;text-align:center}
+.icon{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px}
+.icon-ok{background:#d6efd8}
+.icon-erro{background:#fddede}
+.icon-loading{background:#e6f1fb}
+h2{font-size:18px;font-weight:bold;color:#1a1a2e;margin-bottom:8px}
+p.sub{font-size:13px;color:#666;margin-bottom:20px}
+.info-box{background:#f0f4ff;border-radius:10px;padding:16px;margin-bottom:20px;text-align:left}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e8eaf0}
+.info-row:last-child{border-bottom:none}
+.info-label{font-size:12px;color:#666}
+.info-value{font-size:13px;font-weight:bold;color:#1a1a2e}
+.setor-destaque{font-size:22px;font-weight:bold;color:#1a1a2e;background:#e6f1fb;border-radius:8px;padding:12px;margin-bottom:16px}
+.badge{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:bold;display:inline-block}
+.badge-normal{background:#e6f1fb;color:#0c447c}
+.badge-urgente{background:#faeeda;color:#633806}
+.badge-prioridade{background:#fcebeb;color:#a32d2d}
+.btn-ok{width:100%;padding:14px;background:#1a1a2e;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:bold;cursor:pointer;margin-top:8px}
+.btn-ok:hover{background:#2a2a4e}
+.btn-voltar{width:100%;padding:12px;background:#fff;color:#1a1a2e;border:2px solid #1a1a2e;border-radius:10px;font-size:13px;font-weight:bold;cursor:pointer;margin-top:8px}
+.spinner{width:40px;height:40px;border:4px solid #e0e0e0;border-top:4px solid #1a1a2e;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="spinner"></div>
+  <h2>Verificando pedido...</h2>
+  <p class="sub">Aguarde um momento</p>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbz6o24u6VBIIJ04GPc33Fw2jxVl61CAMlhYpfcsry9-7A1qBTlW3yEZ9cU8eRoJjdPd/exec";
+
+const params = new URLSearchParams(window.location.search);
+const num = params.get('num');
+
+function badgeClass(status){
+  if(status==='Urgente') return 'badge-urgente';
+  if(status==='Prioridade') return 'badge-prioridade';
+  return 'badge-normal';
+}
+
+function formatDate(d){
+  if(!d) return '—';
+  try{ return new Date(d+'T12:00:00').toLocaleDateString('pt-BR'); } catch(e){ return d; }
+}
+
+async function processar(){
+  if(!num){
+    document.getElementById('card').innerHTML =
+      '<div class="icon icon-erro">!</div>' +
+      '<h2>QR Code inválido</h2>' +
+      '<p class="sub">Este QR Code não contém um número de pedido válido.</p>';
+    return;
+  }
+
+  try{
+    const r = await fetch(API + '?acao=scan&num=' + encodeURIComponent(num));
+    const data = await r.json();
+
+    if(data.erro){
+      document.getElementById('card').innerHTML =
+        '<div class="icon icon-erro">!</div>' +
+        '<h2>Pedido não encontrado</h2>' +
+        '<p class="sub">O pedido <strong>#' + num + '</strong> não foi encontrado no sistema.</p>' +
+        '<button class="btn-voltar" onclick="window.close()">Fechar</button>';
+      return;
+    }
+
+    document.getElementById('card').innerHTML =
+      '<div class="icon icon-ok">✓</div>' +
+      '<h2>Pedido avançado!</h2>' +
+      '<p class="sub">O pedido foi movido automaticamente</p>' +
+      '<div class="setor-destaque">' + data.setor + '</div>' +
+      '<div class="info-box">' +
+        '<div class="info-row"><span class="info-label">Pedido</span><span class="info-value">#' + data.num + '</span></div>' +
+        '<div class="info-row"><span class="info-label">Setor atual</span><span class="info-value">' + data.setor + '</span></div>' +
+        '<div class="info-row"><span class="info-label">Prazo</span><span class="info-value">' + formatDate(data.prazo) + '</span></div>' +
+        '<div class="info-row"><span class="info-label">Status</span><span class="info-value"><span class="badge ' + badgeClass(data.status) + '">' + data.status + '</span></span></div>' +
+      '</div>' +
+      '<button class="btn-ok" onclick="window.close()">Confirmar e fechar</button>';
+
+  } catch(e){
+    document.getElementById('card').innerHTML =
+      '<div class="icon icon-erro">!</div>' +
+      '<h2>Erro de conexão</h2>' +
+      '<p class="sub">Verifique sua conexão com a internet e tente novamente.</p>' +
+      '<button class="btn-voltar" onclick="location.reload()">Tentar novamente</button>';
+  }
+}
+
+processar();
+</script>
+</body>
+</html>
