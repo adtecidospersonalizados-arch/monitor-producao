@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Leitor de Pedido</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#0f0f14;min-height:100vh;color:#e8e6e0}
+.header{background:#1a1a2e;padding:14px 18px;text-align:center;border-bottom:1px solid #2a2a35}
+.header h1{font-size:15px;font-weight:bold;color:#e8e6e0}
+.setor-nome{font-size:24px;font-weight:bold;color:#2ecc8a;margin-top:4px}
+.setor-info{font-size:11px;color:#666;margin-top:2px}
+.scanner-wrap{position:relative;width:100%;max-width:400px;margin:16px auto;border-radius:12px;overflow:hidden;background:#000}
+#video{width:100%;display:block}
+.scan-overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-box{width:200px;height:200px;border:3px solid #2ecc8a;border-radius:12px;box-shadow:0 0 0 2000px rgba(0,0,0,0.4)}
+.scan-line{position:absolute;width:180px;height:2px;background:#2ecc8a;animation:scan 2s linear infinite;opacity:0.8}
+@keyframes scan{0%{top:calc(50% - 95px)}100%{top:calc(50% + 95px)}}
+.status{text-align:center;padding:12px 16px;font-size:13px;color:#888}
+.status.ativo{color:#2ecc8a}
+.resultado{margin:0 16px 16px;border-radius:10px;padding:18px;text-align:center;display:none}
+.resultado.ok{background:#0a2a0a;border:2px solid #2ecc8a}
+.resultado.erro{background:#2a0000;border:2px solid #e05050}
+.resultado h3{font-size:18px;font-weight:bold;margin-bottom:8px}
+.resultado.ok h3{color:#2ecc8a}
+.resultado.erro h3{color:#e05050}
+.resultado p{font-size:13px;color:#aaa}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.info-item{background:#1a1a22;border-radius:6px;padding:8px;text-align:center}
+.info-label{font-size:10px;color:#666}
+.info-value{font-size:14px;font-weight:bold;color:#e8e6e0;margin-top:2px}
+.badge{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:bold;display:inline-block;margin-top:2px}
+.badge-normal{background:#0c3060;color:#85b7eb}
+.badge-urgente{background:#412402;color:#ef9f27}
+.badge-prioridade{background:#501313;color:#f09595}
+.btn-novo{width:100%;padding:14px;background:#2ecc8a;color:#1a1a2e;border:none;border-radius:10px;font-size:15px;font-weight:bold;cursor:pointer;margin-top:12px}
+.btn-iniciar{display:block;width:calc(100% - 32px);margin:16px auto;padding:16px;background:#2ecc8a;color:#1a1a2e;border:none;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer}
+.processando{display:none;text-align:center;padding:20px;color:#2ecc8a;font-size:14px}
+.spinner{width:36px;height:36px;border:3px solid #2a2a35;border-top:3px solid #2ecc8a;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.historico{background:#1a1a22;border-radius:8px;padding:10px;margin-top:10px;text-align:left}
+.historico h4{font-size:11px;color:#666;margin-bottom:4px}
+.historico p{font-size:10px;color:#555;line-height:1.6;white-space:pre-line}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Leitor de pedido</h1>
+  <div class="setor-nome" id="setor-nome">Carregando...</div>
+  <div class="setor-info" id="setor-info"></div>
+</div>
+
+<div id="tela-iniciar">
+  <button class="btn-iniciar" onclick="iniciarCamera()">Abrir câmera e escanear</button>
+</div>
+
+<div id="tela-scanner" style="display:none">
+  <div class="scanner-wrap">
+    <video id="video" playsinline autoplay muted></video>
+    <div class="scan-overlay">
+      <div class="scan-box"></div>
+      <div class="scan-line"></div>
+    </div>
+  </div>
+  <div class="status ativo" id="status">Aponte a câmera para o QR Code do pedido</div>
+</div>
+
+<div class="processando" id="processando">
+  <div class="spinner"></div>
+  <div>Registrando pedido...</div>
+</div>
+
+<div class="resultado" id="resultado"></div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbz6o24u6VBIIJ04GPc33Fw2jxVl61CAMlhYpfcsry9-7A1qBTlW3yEZ9cU8eRoJjdPd/exec";
+const SETORES = ['Desenvolvimento','Impressão','Calandra','Corte','Costura','CNC Router','Montagem','Display','Solda','Acabamento','Personalizados','Terceirizados','Expedição'];
+const CADASTRO_BASE = "https://adtecidospersonalizados-arch.github.io/monitor-producao/cadastro.html";
+
+const params = new URLSearchParams(window.location.search);
+const setor = params.get('setor') || '';
+const idx = SETORES.indexOf(setor);
+
+if(!setor || idx === -1){
+  document.getElementById('setor-nome').textContent = 'Setor inválido';
+  document.getElementById('setor-info').textContent = 'Link incorreto — contate o administrador';
+} else {
+  document.getElementById('setor-nome').textContent = setor;
+  document.getElementById('setor-info').textContent = (idx+1) + 'º setor de ' + SETORES.length;
+}
+
+let stream = null;
+let scanning = false;
+let canvas, ctx;
+
+async function iniciarCamera(){
+  document.getElementById('tela-iniciar').style.display = 'none';
+  document.getElementById('tela-scanner').style.display = 'block';
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} }
+    });
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+    video.play();
+    canvas = document.createElement('canvas');
+    ctx = canvas.getContext('2d');
+    scanning = true;
+    requestAnimationFrame(lerQR);
+  } catch(e) {
+    document.getElementById('status').textContent = 'Erro ao acessar câmera. Verifique as permissões.';
+    document.getElementById('status').className = 'status';
+  }
+}
+
+function lerQR(){
+  if(!scanning) return;
+  const video = document.getElementById('video');
+  if(video.readyState === video.HAVE_ENOUGH_DATA){
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(img.data, img.width, img.height, {inversionAttempts:'dontInvert'});
+    if(code && code.data){
+      scanning = false;
+      pararCamera();
+      processarQR(code.data);
+      return;
+    }
+  }
+  requestAnimationFrame(lerQR);
+}
+
+function pararCamera(){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  document.getElementById('tela-scanner').style.display = 'none';
+}
+
+function extrairNum(url){
+  try {
+    const u = new URL(url);
+    const n = u.searchParams.get('num');
+    if(n) return n;
+  } catch(e){}
+  return url.trim();
+}
+
+async function processarQR(data){
+  if(!setor || idx === -1) return;
+
+  const num = extrairNum(data);
+  document.getElementById('processando').style.display = 'block';
+
+  try {
+    const r = await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({ acao: 'moverSetor', num, setor })
+    });
+    const res = await r.json();
+    document.getElementById('processando').style.display = 'none';
+
+    const el = document.getElementById('resultado');
+    el.style.display = 'block';
+
+    if(res.erro){
+      el.className = 'resultado erro';
+      el.innerHTML =
+        '<h3>Pedido não encontrado</h3>' +
+        '<p>O QR Code lido não corresponde a nenhum pedido cadastrado.</p>' +
+        '<button class="btn-novo" onclick="reiniciar()">Escanear novamente</button>';
+    } else {
+      const badge = res.status==='Urgente'?'badge-urgente':res.status==='Prioridade'?'badge-prioridade':'badge-normal';
+      const prazoFmt = res.prazo ? new Date(res.prazo+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+      el.className = 'resultado ok';
+      el.innerHTML =
+        '<h3>Entrada registrada!</h3>' +
+        '<p>Pedido movido para este setor</p>' +
+        '<div class="info-grid">' +
+          '<div class="info-item"><div class="info-label">Pedido</div><div class="info-value">#'+res.num+'</div></div>' +
+          '<div class="info-item"><div class="info-label">Setor</div><div class="info-value">'+res.setor+'</div></div>' +
+          '<div class="info-item"><div class="info-label">Prazo</div><div class="info-value">'+prazoFmt+'</div></div>' +
+          '<div class="info-item"><div class="info-label">Status</div><div class="info-value"><span class="badge '+badge+'">'+res.status+'</span></div></div>' +
+        '</div>' +
+        (res.historico ? '<div class="historico"><h4>Histórico</h4><p>'+res.historico+'</p></div>' : '') +
+        '<button class="btn-novo" onclick="reiniciar()">Escanear próximo pedido</button>';
+    }
+  } catch(e){
+    document.getElementById('processando').style.display = 'none';
+    const el = document.getElementById('resultado');
+    el.style.display = 'block';
+    el.className = 'resultado erro';
+    el.innerHTML =
+      '<h3>Erro de conexão</h3>' +
+      '<p>Verifique sua internet e tente novamente.</p>' +
+      '<button class="btn-novo" onclick="reiniciar()">Tentar novamente</button>';
+  }
+}
+
+function reiniciar(){
+  document.getElementById('resultado').style.display = 'none';
+  scanning = false;
+  iniciarCamera();
+}
+</script>
+</body>
+</html>
