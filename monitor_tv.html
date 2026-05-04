@@ -71,8 +71,8 @@
 <div class="update-bar" id="update-bar">Atualizando...</div>
 <script>
 const API="https://script.google.com/macros/s/AKfycbz6o24u6VBIIJ04GPc33Fw2jxVl61CAMlhYpfcsry9-7A1qBTlW3yEZ9cU8eRoJjdPd/exec";
-const SETORES=['Desenvolvimento','Impressão','Calandra','Corte','Costura','CNC Router','Montagem','Display','Solda','Acabamento','Personalizados','Terceirizados','Expedição'];
-const CAP={Desenvolvimento:30,Impressão:40,Calandra:25,Corte:35,Costura:50,'CNC Router':20,Montagem:45,Display:20,Solda:20,Acabamento:50,Personalizados:25,Terceirizados:20,Expedição:60};
+const SETORES=['Vendas','Desenvolvimento','Impressão','Calandra','Corte','Costura','CNC Router','Montagem','Display','Solda','Acabamento','Personalizados','Terceirizados','Expedição'];
+const CAP={Vendas:50,Desenvolvimento:30,Impressão:40,Calandra:25,Corte:35,Costura:50,'CNC Router':20,Montagem:45,Display:20,Solda:20,Acabamento:50,Personalizados:25,Terceirizados:20,Expedição:60};
 let pedidos=[];
 
 async function fetchData(){
@@ -113,11 +113,6 @@ function render(){
     '<div class="metric"><div class="metric-label">Urgentes / Prioridade</div><div class="metric-value mv-warn">'+urg+'</div></div>'+
     '<div class="metric"><div class="metric-label">Atrasados</div><div class="metric-value mv-danger">'+atr+'</div></div>'+
     '<div class="metric"><div class="metric-label">Setores críticos</div><div class="metric-value '+(crit>0?'mv-danger':'mv-ok')+'">'+crit+'</div></div>';
-
-  if(pedidos.length===0){
-    document.getElementById('sectors').innerHTML='<div class="vazio" style="grid-column:1/-1">Nenhum pedido em produção no momento.</div>';
-    return;
-  }
 
   document.getElementById('sectors').innerHTML=SETORES.map(nome=>{
     const ps=pedidos.filter(p=>p.setor===nome);
