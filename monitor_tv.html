@@ -77,10 +77,10 @@ let pedidos=[];
 
 async function fetchData(){
   try{
-    const r=await fetch(API+'?acao=listar');
+    const r=await fetch(API+'?acao=listar&t='+Date.now(),{cache:'no-store'});
     const p=await r.json();
     if(Array.isArray(p)){
-      pedidos=p.filter(x=>x.setor&&SETORES.includes(x.setor)).map(x=>({...x,prazo:x.prazo?new Date(x.prazo):null}));
+      pedidos=p.filter(x=>x.setor&&SETORES.includes(x.setor)).map(x=>({...x,prazo:x.prazo?new Date(x.prazo+'T23:59:59'):null}));
       document.getElementById('subtitle').textContent='Dados ao vivo — Google Sheets';
     }
   }catch(e){
