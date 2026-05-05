@@ -88,7 +88,7 @@ async function fetchData(){
   }
 }
 
-function isLate(p){return p.prazo&&p.prazo<new Date();}
+function isLate(p){if(!p.prazo)return false;const fim=new Date(p.prazo);fim.setHours(23,59,59,999);return fim<new Date();}
 function isUrg(p){return p.urg||p.status==='Urgente'||p.status==='Prioridade';}
 function stSetor(n){
   const ps=pedidos.filter(p=>p.setor===n);
