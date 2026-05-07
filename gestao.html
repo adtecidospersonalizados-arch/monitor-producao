@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão de Pedidos</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;padding:20px}
+.container{max-width:800px;margin:0 auto}
+.header{background:#1a1a2e;color:#fff;padding:16px 20px;border-radius:10px;margin-bottom:20px}
+.header h1{font-size:18px;font-weight:bold}
+.header p{font-size:12px;color:#888;margin-top:4px}
+.filtros{background:#fff;border-radius:10px;padding:16px;margin-bottom:16px;border:1px solid #e0e0e0;display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:12px;color:#555;font-weight:bold}
+.fg input,.fg select{padding:9px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:Arial;width:100%}
+.btn-buscar{padding:9px 20px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer;white-space:nowrap}
+.resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.resumo-item{background:#fff;border-radius:8px;padding:12px;text-align:center;border:1px solid #e0e0e0}
+.resumo-label{font-size:11px;color:#888;margin-bottom:4px}
+.resumo-valor{font-size:22px;font-weight:bold;color:#1a1a2e}
+.resumo-valor.verde{color:#1a5e2a}
+.resumo-valor.amarelo{color:#854F0B}
+.resumo-valor.vermelho{color:#8B0000}
+.lista{background:#fff;border-radius:10px;border:1px solid #e0e0e0;overflow:hidden}
+.lista-header{display:grid;grid-template-columns:80px 1fr 140px 100px 120px 100px;gap:8px;padding:10px 16px;background:#f8f8f8;border-bottom:1px solid #e0e0e0;font-size:11px;font-weight:bold;color:#555}
+.pedido-row{display:grid;grid-template-columns:80px 1fr 140px 100px 120px 100px;gap:8px;padding:10px 16px;border-bottom:1px solid #f0f0f0;align-items:center}
+.pedido-row:last-child{border-bottom:none}
+.pedido-row:hover{background:#fafafa}
+.pedido-num{font-size:13px;font-weight:bold;color:#1a1a2e}
+.pedido-setor{font-size:12px;color:#333}
+.pedido-prazo{font-size:12px;color:#555}
+.badge{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:bold;display:inline-block}
+.badge-normal{background:#e6f1fb;color:#0c447c}
+.badge-urgente{background:#faeeda;color:#633806}
+.badge-prioridade{background:#fcebeb;color:#a32d2d}
+.badge-atrasado{background:#fddede;color:#8b0000}
+.select-status{font-size:11px;padding:4px 6px;border:1px solid #ddd;border-radius:5px;cursor:pointer;width:100%}
+.empty{text-align:center;color:#aaa;font-size:13px;padding:30px}
+.loading{text-align:center;color:#888;font-size:13px;padding:30px}
+.paginacao{display:flex;justify-content:center;gap:8px;padding:16px;align-items:center}
+.btn-pag{padding:6px 12px;border:1px solid #ddd;border-radius:6px;cursor:pointer;font-size:12px;background:#fff}
+.btn-pag.ativo{background:#1a1a2e;color:#fff;border-color:#1a1a2e}
+.btn-pag:disabled{opacity:0.4;cursor:not-allowed}
+.pag-info{font-size:12px;color:#888}
+.msg{padding:10px;border-radius:6px;font-size:13px;margin-bottom:12px;display:none}
+.msg.ok{background:#d6efd8;color:#1a5e2a}
+.msg.erro{background:#fddede;color:#8b0000}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Gestão de Pedidos</h1>
+    <p>Busque, filtre e atualize o status dos pedidos em produção</p>
+  </div>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="filtros">
+    <div class="fg">
+      <label>Buscar por número</label>
+      <input type="text" id="busca" placeholder="Ex: 5001" onkeydown="if(event.key==='Enter')filtrar()">
+    </div>
+    <div class="fg">
+      <label>Filtrar por setor</label>
+      <select id="filtro-setor" onchange="filtrar()">
+        <option value="">Todos os setores</option>
+        <option>Vendas</option>
+        <option>Desenvolvimento</option>
+        <option>Impressão</option>
+        <option>Calandra</option>
+        <option>Corte</option>
+        <option>Costura</option>
+        <option>CNC Router</option>
+        <option>Montagem</option>
+        <option>Display</option>
+        <option>Solda</option>
+        <option>Acabamento</option>
+        <option>Personalizados</option>
+        <option>Terceirizados</option>
+        <option>Expedição</option>
+      </select>
+    </div>
+    <button class="btn-buscar" onclick="filtrar()">Buscar</button>
+  </div>
+
+  <div class="resumo" id="resumo"></div>
+
+  <div class="lista">
+    <div class="lista-header">
+      <div>Pedido</div>
+      <div>Setor atual</div>
+      <div>Prazo</div>
+      <div>Status</div>
+      <div>Alterar status</div>
+      <div>Situação</div>
+    </div>
+    <div id="lista-body"><div class="loading">Carregando pedidos...</div></div>
+  </div>
+
+  <div class="paginacao" id="paginacao"></div>
+</div>
+
+<script>
+const API="https://script.google.com/macros/s/AKfycbz6o24u6VBIIJ04GPc33Fw2jxVl61CAMlhYpfcsry9-7A1qBTlW3yEZ9cU8eRoJjdPd/exec";
+let todosPedidos=[];
+let pedidosFiltrados=[];
+const POR_PAGINA=20;
+let paginaAtual=1;
+
+function mostrarMsg(txt,tipo){
+  const el=document.getElementById('msg');
+  el.textContent=txt;el.className='msg '+tipo;el.style.display='block';
+  setTimeout(()=>el.style.display='none',3000);
+}
+
+function formatDate(d){
+  if(!d)return'—';
+  try{return new Date(d+'T12:00:00').toLocaleDateString('pt-BR');}catch(e){return d;}
+}
+
+function isLate(prazo){
+  if(!prazo)return false;
+  return new Date(prazo+'T23:59:59')<new Date();
+}
+
+function badgeStatus(status,prazo){
+  if(isLate(prazo)&&status!=='Entregue') return '<span class="badge badge-atrasado">Atrasado</span>';
+  if(status==='Urgente') return '<span class="badge badge-urgente">Urgente</span>';
+  if(status==='Prioridade') return '<span class="badge badge-prioridade">Prioridade</span>';
+  return '<span class="badge badge-normal">Normal</span>';
+}
+
+async function carregarTodos(){
+  try{
+    const r=await fetch(API+'?acao=listar&t='+Date.now(),{cache:'no-store'});
+    todosPedidos=await r.json();
+    if(!Array.isArray(todosPedidos))todosPedidos=[];
+    filtrar();
+  }catch(e){
+    document.getElementById('lista-body').innerHTML='<div class="empty">Erro ao carregar pedidos. Verifique a conexão.</div>';
+  }
+}
+
+function filtrar(){
+  const busca=document.getElementById('busca').value.trim().toLowerCase();
+  const setor=document.getElementById('filtro-setor').value;
+  pedidosFiltrados=todosPedidos.filter(p=>{
+    if(busca&&!String(p.num).toLowerCase().includes(busca))return false;
+    if(setor&&p.setor!==setor)return false;
+    return true;
+  });
+  paginaAtual=1;
+  renderResumo();
+  renderLista();
+}
+
+function renderResumo(){
+  const total=pedidosFiltrados.length;
+  const urg=pedidosFiltrados.filter(p=>p.status==='Urgente'||p.status==='Prioridade').length;
+  const atr=pedidosFiltrados.filter(p=>isLate(p.prazo)).length;
+  const normal=total-urg-atr;
+  document.getElementById('resumo').innerHTML=
+    '<div class="resumo-item"><div class="resumo-label">Total</div><div class="resumo-valor">'+total+'</div></div>'+
+    '<div class="resumo-item"><div class="resumo-label">No prazo</div><div class="resumo-valor verde">'+normal+'</div></div>'+
+    '<div class="resumo-item"><div class="resumo-label">Urgentes</div><div class="resumo-valor amarelo">'+urg+'</div></div>'+
+    '<div class="resumo-item"><div class="resumo-label">Atrasados</div><div class="resumo-valor vermelho">'+atr+'</div></div>';
+}
+
+function renderLista(){
+  const inicio=(paginaAtual-1)*POR_PAGINA;
+  const fim=inicio+POR_PAGINA;
+  const pagina=pedidosFiltrados.slice(inicio,fim);
+  const totalPags=Math.ceil(pedidosFiltrados.length/POR_PAGINA);
+
+  if(pagina.length===0){
+    document.getElementById('lista-body').innerHTML='<div class="empty">Nenhum pedido encontrado.</div>';
+    document.getElementById('paginacao').innerHTML='';
+    return;
+  }
+
+  document.getElementById('lista-body').innerHTML=pagina.map(p=>`
+    <div class="pedido-row">
+      <div class="pedido-num">#${p.num}</div>
+      <div class="pedido-setor">${p.setor||'—'}</div>
+      <div class="pedido-prazo">${formatDate(p.prazo)}</div>
+      <div>${badgeStatus(p.status,p.prazo)}</div>
+      <div>
+        <select class="select-status" onchange="atualizarStatus('${p.num}',this.value)">
+          <option value="Normal"${p.status==='Normal'?' selected':''}>Normal</option>
+          <option value="Urgente"${p.status==='Urgente'?' selected':''}>Urgente</option>
+          <option value="Prioridade"${p.status==='Prioridade'?' selected':''}>Prioridade</option>
+          <option value="Entregue"${p.status==='Entregue'?' selected':''}>✓ Entregue</option>
+        </select>
+      </div>
+      <div>${isLate(p.prazo)?'<span style="color:#8b0000;font-size:11px;font-weight:bold">⚠ Atrasado</span>':'<span style="color:#1a5e2a;font-size:11px">✓ No prazo</span>'}</div>
+    </div>`).join('');
+
+  // Paginação
+  let pags='';
+  if(totalPags>1){
+    pags+=`<button class="btn-pag" onclick="irPagina(${paginaAtual-1})" ${paginaAtual===1?'disabled':''}>‹ Anterior</button>`;
+    for(let i=1;i<=totalPags;i++){
+      if(i===1||i===totalPags||Math.abs(i-paginaAtual)<=2){
+        pags+=`<button class="btn-pag${i===paginaAtual?' ativo':''}" onclick="irPagina(${i})">${i}</button>`;
+      } else if(Math.abs(i-paginaAtual)===3){
+        pags+='<span class="pag-info">...</span>';
+      }
+    }
+    pags+=`<button class="btn-pag" onclick="irPagina(${paginaAtual+1})" ${paginaAtual===totalPags?'disabled':''}>Próximo ›</button>`;
+    pags+=`<span class="pag-info">${inicio+1}–${Math.min(fim,pedidosFiltrados.length)} de ${pedidosFiltrados.length}</span>`;
+  }
+  document.getElementById('paginacao').innerHTML=pags;
+}
+
+function irPagina(p){
+  paginaAtual=p;
+  renderLista();
+  window.scrollTo(0,0);
+}
+
+async function atualizarStatus(num,status){
+  try{
+    await fetch(API,{method:'POST',body:JSON.stringify({acao:'atualizar',num,status})});
+    mostrarMsg(status==='Entregue'?'Pedido #'+num+' marcado como entregue!':'Status do pedido #'+num+' atualizado!','ok');
+    await carregarTodos();
+  }catch(e){
+    mostrarMsg('Erro ao atualizar. Tente novamente.','erro');
+  }
+}
+
+carregarTodos();
+setInterval(carregarTodos,60000);
+</script>
+</body>
+</html>
