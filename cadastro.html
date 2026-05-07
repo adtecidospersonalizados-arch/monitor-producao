@@ -8,46 +8,38 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;padding:20px}
-.container{max-width:600px;margin:0 auto}
+.container{max-width:500px;margin:0 auto}
 .header{background:#1a1a2e;color:#fff;padding:16px 20px;border-radius:10px;margin-bottom:20px}
 .header h1{font-size:18px;font-weight:bold}
 .header p{font-size:12px;color:#888;margin-top:4px}
-.card{background:#fff;border-radius:10px;padding:20px;margin-bottom:16px;border:1px solid #e0e0e0}
+.card{background:#fff;border-radius:10px;padding:20px;border:1px solid #e0e0e0}
 .card h2{font-size:14px;font-weight:bold;color:#1a1a2e;margin-bottom:14px}
 .form-group{margin-bottom:12px}
 .form-group label{font-size:12px;color:#555;display:block;margin-bottom:4px;font-weight:bold}
 .form-group input,.form-group select{width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:Arial}
-.btn-cadastrar{width:100%;padding:12px;background:#1a1a2e;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer}
+.btn-cadastrar{width:100%;padding:12px;background:#1a1a2e;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;margin-top:4px}
 .btn-cadastrar:disabled{background:#aaa;cursor:not-allowed}
-.qr-area{display:none;text-align:center}
-.qr-area h3{font-size:14px;color:#1a1a2e;margin-bottom:12px}
-.qr-box{display:inline-block;padding:16px;background:#fff;border:2px solid #1a1a2e;border-radius:10px;margin-bottom:12px}
-.pedido-info{background:#f0f4ff;border-radius:8px;padding:12px;margin-bottom:12px;text-align:left}
-.pedido-info p{font-size:12px;color:#333;margin-bottom:4px}
-.pedido-info p strong{color:#1a1a2e}
-.btn-imprimir{padding:10px 24px;background:#2ecc8a;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;margin-right:8px}
-.btn-novo{padding:10px 24px;background:#fff;color:#1a1a2e;border:2px solid #1a1a2e;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer}
 .msg{padding:10px;border-radius:6px;font-size:13px;margin-bottom:12px;display:none}
 .msg.ok{background:#d6efd8;color:#1a5e2a}
 .msg.erro{background:#fddede;color:#8b0000}
-
-.lista-card h2{font-size:14px;font-weight:bold;color:#1a1a2e;margin-bottom:12px}
-
-.pedido-item:last-child{border-bottom:none}
-
-
-
-
-
-
+.qr-area{display:none;text-align:center;margin-top:16px}
+.qr-area h3{font-size:14px;color:#1a1a2e;margin-bottom:12px}
+.qr-box{display:inline-block;padding:16px;border:2px solid #1a1a2e;border-radius:10px;margin-bottom:12px;background:#fff}
+.pedido-info{background:#f0f4ff;border-radius:8px;padding:12px;text-align:left;margin-bottom:12px}
+.pedido-info p{font-size:12px;color:#333;margin-bottom:4px}
+.pedido-info p strong{color:#1a1a2e}
+.btns{display:flex;gap:8px;justify-content:center}
+.btn-imprimir{padding:10px 20px;background:#2ecc8a;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer}
+.btn-novo{padding:10px 20px;background:#fff;color:#1a1a2e;border:2px solid #1a1a2e;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer}
+.link-gestao{text-align:center;margin-top:16px;font-size:12px;color:#888}
+.link-gestao a{color:#1a1a2e;font-weight:bold}
 @media print{
   body *{display:none!important}
-  .qr-area, .qr-area *{display:block!important}
-  .qr-box, .qr-box *{display:inline-block!important}
-  .pedido-info, .pedido-info *{display:block!important}
-  .pedido-info p{display:block!important}
+  .qr-area,.qr-area *{display:block!important}
+  .qr-box,.qr-box *{display:inline-block!important}
+  .pedido-info,.pedido-info *,.pedido-info p{display:block!important}
+  .btns{display:none!important}
   body{background:#fff!important;padding:20px!important}
-  .btn-imprimir, .btn-novo{display:none!important}
 }
 </style>
 </head>
@@ -57,13 +49,14 @@ body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;padding:20
     <h1>Cadastro de Pedidos</h1>
     <p>Registre o pedido e imprima o QR Code para colar na peça</p>
   </div>
+
   <div class="card">
     <h2>Novo pedido</h2>
     <div class="msg" id="msg"></div>
     <div id="form-area">
       <div class="form-group">
         <label>Número do pedido</label>
-        <input type="text" id="num" placeholder="Ex: 5001">
+        <input type="text" id="num" placeholder="Ex: 5001" onkeydown="if(event.key==='Enter')cadastrar()">
       </div>
       <div class="form-group">
         <label>Prazo de entrega</label>
@@ -79,24 +72,32 @@ body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;padding:20
       </div>
       <button class="btn-cadastrar" id="btn-cadastrar" onclick="cadastrar()">Cadastrar e gerar QR Code</button>
     </div>
+
     <div class="qr-area" id="qr-area">
       <h3>QR Code gerado — imprima e cole no pedido</h3>
       <div class="qr-box" id="qr-code"></div>
       <div class="pedido-info" id="pedido-info"></div>
-      <div>
-        <button class="btn-imprimir" onclick="window.print()">Imprimir QR Code</button>
+      <div class="btns">
+        <button class="btn-imprimir" onclick="imprimir()">Imprimir QR Code</button>
         <button class="btn-novo" onclick="novoPedido()">Novo pedido</button>
       </div>
     </div>
   </div>
-  
+
+  <div class="link-gestao">
+    <a href="gestao.html">Ir para Gestão de Pedidos →</a>
   </div>
 </div>
+
 <script>
 const API="https://script.google.com/macros/s/AKfycbz6o24u6VBIIJ04GPc33Fw2jxVl61CAMlhYpfcsry9-7A1qBTlW3yEZ9cU8eRoJjdPd/exec";
 const SCAN_URL="https://adtecidospersonalizados-arch.github.io/monitor-producao/leitor.html?num=";
 
-function mostrarMsg(txt,tipo){const el=document.getElementById('msg');el.textContent=txt;el.className='msg '+tipo;el.style.display='block';setTimeout(()=>el.style.display='none',3000);}
+function mostrarMsg(txt,tipo){
+  const el=document.getElementById('msg');
+  el.textContent=txt;el.className='msg '+tipo;el.style.display='block';
+  setTimeout(()=>el.style.display='none',4000);
+}
 
 async function cadastrar(){
   const num=document.getElementById('num').value.trim();
@@ -106,14 +107,18 @@ async function cadastrar(){
   const btn=document.getElementById('btn-cadastrar');
   btn.disabled=true;btn.textContent='Cadastrando...';
   try{
-    const resp = await fetch(API,{method:'POST',body:JSON.stringify({acao:'cadastrar',num,prazo,status})});
-    const result = await resp.json();
-    if(result.erro === 'duplicata'){
-      mostrarMsg('⚠ Pedido #'+num+' já está em produção! Setor atual: '+result.setor+' — Status: '+result.status,'erro');
-    } else {
+    const resp=await fetch(API,{method:'POST',body:JSON.stringify({acao:'cadastrar',num,prazo,status})});
+    const result=await resp.json();
+    if(result.erro==='duplicata'){
+      mostrarMsg('⚠ Pedido #'+num+' já está em produção! Setor: '+result.setor+' — Status: '+result.status,'erro');
+    } else if(result.ok){
       gerarQR(num,prazo,status);
+    } else {
+      mostrarMsg('Erro ao cadastrar. Tente novamente.','erro');
     }
-  }catch(e){mostrarMsg('Erro ao cadastrar.','erro');}
+  }catch(e){
+    mostrarMsg('Erro de conexão. Verifique a internet.','erro');
+  }
   btn.disabled=false;btn.textContent='Cadastrar e gerar QR Code';
 }
 
@@ -121,12 +126,18 @@ function gerarQR(num,prazo,status){
   document.getElementById('form-area').style.display='none';
   document.getElementById('qr-area').style.display='block';
   document.getElementById('qr-code').innerHTML='';
-  new QRCode(document.getElementById('qr-code'),{text:SCAN_URL+encodeURIComponent(num),width:180,height:180,colorDark:"#1a1a2e",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+  new QRCode(document.getElementById('qr-code'),{
+    text:SCAN_URL+encodeURIComponent(num),
+    width:180,height:180,
+    colorDark:"#1a1a2e",colorLight:"#ffffff",
+    correctLevel:QRCode.CorrectLevel.M
+  });
+  const prazoFmt=prazo?new Date(prazo+'T12:00:00').toLocaleDateString('pt-BR'):'—';
   document.getElementById('pedido-info').innerHTML=
     '<p><strong>Pedido:</strong> #'+num+'</p>'+
-    (prazo?'<p><strong>Prazo:</strong> '+new Date(prazo+'T12:00:00').toLocaleDateString('pt-BR')+'</p>':'')+
+    '<p><strong>Prazo:</strong> '+prazoFmt+'</p>'+
     '<p><strong>Status:</strong> '+status+'</p>'+
-    '<p><strong>Primeiro setor:</strong> Desenvolvimento</p>';
+    '<p><strong>Primeiro setor:</strong> Vendas</p>';
 }
 
 function novoPedido(){
@@ -135,14 +146,26 @@ function novoPedido(){
   document.getElementById('num').value='';
   document.getElementById('prazo').value='';
   document.getElementById('status').value='Normal';
+  document.getElementById('num').focus();
 }
 
-
-    if(status==='Entregue') mostrarMsg('Pedido #'+num+' marcado como entregue e removido do painel!','ok');
-  }catch(e){alert('Erro ao atualizar status.');}
+function imprimir(){
+  const qrEl=document.getElementById('qr-code');
+  const infoEl=document.getElementById('pedido-info');
+  const win=window.open('','_blank','width=400,height=500');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QR Code</title>'+
+    '<style>body{font-family:Arial,sans-serif;padding:20px;text-align:center}'+
+    '.qr-box{display:inline-block;padding:16px;border:2px solid #1a1a2e;border-radius:10px;margin-bottom:12px}'+
+    '.info{background:#f0f4ff;border-radius:8px;padding:12px;text-align:left;font-size:13px}'+
+    '.info p{margin-bottom:4px}strong{color:#1a1a2e}'+
+    'h2{color:#1a1a2e;margin-bottom:16px;font-size:16px}</style></head><body>'+
+    '<h2>QR Code do Pedido</h2>'+
+    '<div class="qr-box">'+qrEl.innerHTML+'</div>'+
+    '<div class="info">'+infoEl.innerHTML+'</div>'+
+    '<script>window.onload=function(){window.print();}<\/script>'+
+    '</body></html>');
+  win.document.close();
 }
-
-
 </script>
 </body>
 </html>
