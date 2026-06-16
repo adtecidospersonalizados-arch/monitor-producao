@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Leitor de Estoque</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#0f0f14;min-height:100vh;color:#e8e6e0}
+.header{padding:14px 18px;text-align:center;border-bottom:1px solid #2a2a35}
+.header.entrada{background:#0a2a18}
+.header.saida{background:#2a0a0a}
+.header h1{font-size:15px;font-weight:bold;color:#e8e6e0}
+.tipo-nome{font-size:24px;font-weight:bold;margin-top:4px}
+.tipo-nome.entrada{color:#2ecc8a}
+.tipo-nome.saida{color:#e05050}
+#reader{width:100%;max-width:420px;margin:12px auto}
+.status{text-align:center;padding:10px 16px;font-size:13px;color:#888}
+.btn-iniciar{display:block;width:calc(100% - 32px);margin:16px auto;padding:18px;color:#1a1a2e;border:none;border-radius:10px;font-size:17px;font-weight:bold;cursor:pointer}
+.btn-iniciar.entrada{background:#2ecc8a}
+.btn-iniciar.saida{background:#e05050}
+.processando{display:none;text-align:center;padding:20px;color:#888;font-size:14px}
+.spinner{width:36px;height:36px;border:3px solid #2a2a35;border-top:3px solid #2ecc8a;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.produto-card{margin:0 16px;border-radius:10px;padding:18px;display:none}
+.produto-card h3{font-size:18px;font-weight:bold;margin-bottom:6px;color:#e8e6e0}
+.produto-card .qtd-atual{font-size:13px;color:#888;margin-bottom:16px}
+.form-group{margin-bottom:14px}
+.form-group label{font-size:12px;color:#aaa;display:block;margin-bottom:6px;font-weight:bold}
+.form-group input{width:100%;padding:12px;border:2px solid #2a2a35;border-radius:8px;font-size:18px;font-family:Arial;text-align:center;background:#1a1a22;color:#e8e6e0}
+.form-group input:focus{outline:none;border-color:#2ecc8a}
+.btn-confirmar{width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:bold;cursor:pointer;color:#1a1a2e}
+.btn-confirmar.entrada{background:#2ecc8a}
+.btn-confirmar.saida{background:#e05050}
+.produto-card.entrada{background:#0a2a18;border:2px solid #2ecc8a}
+.produto-card.saida{background:#2a0a0a;border:2px solid #e05050}
+.resultado{margin:0 16px 16px;border-radius:10px;padding:18px;text-align:center;display:none}
+.resultado.ok{background:#0a2a0a;border:2px solid #2ecc8a}
+.resultado.alerta{background:#2a1a00;border:2px solid #f0a030}
+.resultado.erro{background:#2a0000;border:2px solid #e05050}
+.resultado h3{font-size:18px;font-weight:bold;margin-bottom:8px}
+.resultado.ok h3{color:#2ecc8a}
+.resultado.alerta h3{color:#f0a030}
+.resultado.erro h3{color:#e05050}
+.resultado p{font-size:13px;color:#aaa}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.info-item{background:#1a1a22;border-radius:6px;padding:8px;text-align:center}
+.info-label{font-size:10px;color:#666}
+.info-value{font-size:16px;font-weight:bold;color:#e8e6e0;margin-top:2px}
+.btn-novo{width:100%;padding:14px;background:#2ecc8a;color:#1a1a2e;border:none;border-radius:10px;font-size:15px;font-weight:bold;cursor:pointer;margin-top:12px}
+</style>
+</head>
+<body>
+
+<div class="header" id="header">
+  <h1>Movimentação de estoque</h1>
+  <div class="tipo-nome" id="tipo-nome">Carregando...</div>
+</div>
+
+<div id="tela-iniciar">
+  <button class="btn-iniciar" id="btn-iniciar" onclick="iniciar()">Abrir câmera e escanear produto</button>
+</div>
+
+<div id="tela-scanner" style="display:none">
+  <div class="status">Aponte para o QR Code do produto</div>
+  <div id="reader"></div>
+</div>
+
+<div class="processando" id="processando">
+  <div class="spinner"></div>
+  <div>Buscando produto...</div>
+</div>
+
+<div class="produto-card" id="produto-card">
+  <h3 id="produto-nome"></h3>
+  <div class="qtd-atual" id="produto-qtd"></div>
+  <div class="form-group">
+    <label id="label-qtd">Quantidade</label>
+    <input type="number" id="quantidade" placeholder="0" min="1" inputmode="numeric">
+  </div>
+  <div class="form-group" id="grupo-fornecedor" style="display:none">
+    <label>Fornecedor</label>
+    <input type="text" id="fornecedor" placeholder="Nome do fornecedor">
+  </div>
+  <button class="btn-confirmar" id="btn-confirmar" onclick="confirmar()">Confirmar</button>
+</div>
+
+<div class="resultado" id="resultado"></div>
+
+<script>
+const API="https://script.google.com/macros/s/AKfycbwLe2DIaIE6Uh4qyjVOfZonmWRbtURtBwOE1s4lqGCLn3tu4Iyf5zptXm7LbOi80DZwDA/exec";
+
+const params=new URLSearchParams(window.location.search);
+const tipo=params.get('tipo')||'';
+let codigoAtual=null;
+
+if(tipo==='entrada'){
+  document.getElementById('header').className='header entrada';
+  document.getElementById('tipo-nome').className='tipo-nome entrada';
+  document.getElementById('tipo-nome').textContent='Entrada de Estoque';
+  document.getElementById('btn-iniciar').className='btn-iniciar entrada';
+}else if(tipo==='saida'){
+  document.getElementById('header').className='header saida';
+  document.getElementById('tipo-nome').className='tipo-nome saida';
+  document.getElementById('tipo-nome').textContent='Saída de Estoque';
+  document.getElementById('btn-iniciar').className='btn-iniciar saida';
+}else{
+  document.getElementById('tipo-nome').textContent='Link inválido';
+}
+
+let scanner=null;
+let processando=false;
+
+function iniciar(){
+  if(!tipo){alert('Link inválido. Use o QR Code de Entrada ou Saída.');return;}
+  document.getElementById('tela-iniciar').style.display='none';
+  document.getElementById('tela-scanner').style.display='block';
+
+  scanner=new Html5Qrcode("reader");
+  scanner.start(
+    {facingMode:"environment"},
+    {fps:15,qrbox:{width:250,height:250},aspectRatio:1.0},
+    onSucesso,
+    ()=>{}
+  ).catch(err=>{
+    document.getElementById('tela-scanner').innerHTML='<div style="padding:20px;text-align:center;color:#e05050">Erro ao acessar câmera.<br>Verifique as permissões.</div>';
+  });
+}
+
+async function onSucesso(codigo){
+  if(processando)return;
+  processando=true;
+  if(scanner){try{await scanner.stop();}catch(e){}}
+  document.getElementById('tela-scanner').style.display='none';
+  document.getElementById('processando').style.display='block';
+
+  codigoAtual=codigo.trim();
+
+  try{
+    const r=await fetch(API+'?acao=statusProduto&codigo='+encodeURIComponent(codigoAtual));
+    const res=await r.json();
+    document.getElementById('processando').style.display='none';
+
+    if(res.erro){
+      mostrarErro('Produto não encontrado','O QR Code lido não corresponde a nenhum produto cadastrado.');
+      return;
+    }
+
+    document.getElementById('produto-card').className='produto-card '+tipo;
+    document.getElementById('produto-card').style.display='block';
+    document.getElementById('produto-nome').textContent=res.nome;
+    document.getElementById('produto-qtd').textContent='Quantidade atual: '+res.qtd+(res.minimo?' (mínimo: '+res.minimo+')':'');
+    document.getElementById('label-qtd').textContent=tipo==='entrada'?'Quantidade que está entrando':'Quantidade que está saindo';
+    document.getElementById('btn-confirmar').className='btn-confirmar '+tipo;
+    document.getElementById('grupo-fornecedor').style.display=tipo==='entrada'?'block':'none';
+    document.getElementById('quantidade').value='';
+    document.getElementById('quantidade').focus();
+  }catch(e){
+    document.getElementById('processando').style.display='none';
+    mostrarErro('Erro de conexão','Verifique sua internet e tente novamente.');
+  }
+}
+
+function mostrarErro(titulo,msg){
+  const el=document.getElementById('resultado');
+  el.style.display='block';
+  el.className='resultado erro';
+  el.innerHTML='<h3>'+titulo+'</h3><p>'+msg+'</p><button class="btn-novo" onclick="reiniciar()">Tentar novamente</button>';
+}
+
+async function confirmar(){
+  const quantidade=document.getElementById('quantidade').value;
+  const fornecedor=document.getElementById('fornecedor').value.trim();
+  if(!quantidade||Number(quantidade)<=0){alert('Informe uma quantidade válida!');return;}
+
+  document.getElementById('produto-card').style.display='none';
+  document.getElementById('processando').style.display='block';
+
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({acao:'movimentarProduto',codigo:codigoAtual,tipo,quantidade,fornecedor})});
+    const res=await r.json();
+    document.getElementById('processando').style.display='none';
+
+    const el=document.getElementById('resultado');
+    el.style.display='block';
+
+    if(res.erro){
+      el.className='resultado erro';
+      el.innerHTML='<h3>Erro</h3><p>'+res.erro+'</p><button class="btn-novo" onclick="reiniciar()">Tentar novamente</button>';
+    }else{
+      const baixo=res.minimo>0&&res.qtd<=res.minimo;
+      el.className=baixo?'resultado alerta':'resultado ok';
+      el.innerHTML='<h3>'+(tipo==='entrada'?'Entrada registrada!':'Saída registrada!')+'</h3>'+
+        '<p>'+res.nome+'</p>'+
+        '<div class="info-grid">'+
+        '<div class="info-item"><div class="info-label">Código</div><div class="info-value">'+res.codigo+'</div></div>'+
+        '<div class="info-item"><div class="info-label">Nova quantidade</div><div class="info-value">'+res.qtd+'</div></div>'+
+        '</div>'+
+        (baixo?'<p style="margin-top:10px;color:#f0a030;font-weight:bold">⚠ Estoque abaixo do mínimo!</p>':'')+
+        '<button class="btn-novo" onclick="reiniciar()">Escanear próximo produto</button>';
+    }
+  }catch(e){
+    document.getElementById('processando').style.display='none';
+    mostrarErro('Erro de conexão','Verifique sua internet e tente novamente.');
+  }
+}
+
+function reiniciar(){
+  processando=false;
+  document.getElementById('resultado').style.display='none';
+  document.getElementById('produto-card').style.display='none';
+  iniciar();
+}
+</script>
+</body>
+</html>
